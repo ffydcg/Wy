@@ -1,0 +1,58 @@
+<beans xmlns="http://www.springframework.org/schema/beans"
+	xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:mvc="http://www.springframework.org/schema/mvc"
+	xmlns:context="http://www.springframework.org/schema/context"
+	xmlns:aop="http://www.springframework.org/schema/aop" xmlns:tx="http://www.springframework.org/schema/tx"
+	xsi:schemaLocation="http://www.springframework.org/schema/beans 
+		http://www.springframework.org/schema/beans/spring-beans-3.2.xsd 
+		http://www.springframework.org/schema/tx
+        http://www.springframework.org/schema/tx/spring-tx.xsd 
+		http://www.springframework.org/schema/context 
+		 http://www.springframework.org/schema/context/spring-context-3.2.xsd 
+		http://www.springframework.org/schema/aop 
+		http://www.springframework.org/schema/aop/spring-aop-3.2.xsd ">
+ 	<!-- 配置数据库配置文件 -->
+	<bean class="org.springframework.beans.factory.config.PropertyPlaceholderConfigurer">
+		<property name="location" value="classpath:jdbc.properties"/>
+	</bean>
+ <!-- 配置数据源 ，dbcp -->
+	<bean id="dataSource" class="org.apache.commons.dbcp.BasicDataSource">
+		<property name="driverClassName" value="${jdbc.driver}" />
+		<property name="url" value="${jdbc.url}" />
+		<property name="username" value="${jdbc.username}" />
+		<property name="password" value="${jdbc.password}" />
+	</bean>
+	
+	<bean id="sqlSessionFactory" class="org.mybatis.spring.SqlSessionFactoryBean">  
+        <property name="dataSource" ref="dataSource" />  
+        <!-- 自动扫描mapping.xml文件 -->  
+        <property name="typeAliasesPackage" value="com.em.mapper"/>
+        <property name="configLocation" value="classpath:mybatis-config.xml" />
+        <property name="mapperLocations" value="classpath:com/em/mapper/*.xml"></property>  
+    </bean>  
+    <!-- mapper扫描器 -->
+	<bean class="org.mybatis.spring.mapper.MapperScannerConfigurer">
+		<!-- 扫描包路径，如果需要扫描多个包，中间使用半角逗号隔开 -->
+		<property name="basePackage" value="com.em.mapper"></property>
+		<property name="sqlSessionFactoryBeanName" value="sqlSessionFactory" />
+	</bean>
+	<!-- 事务管理器  -->	
+	<bean id="txManager" class="org.springframework.jdbc.datasource.DataSourceTransactionManager">
+		<property name="dataSource" ref="dataSource"/>
+	</bean>
+	<bean class="tk.mybatis.spring.mapper.MapperScannerConfigurer">
+    <property name="basePackage" value="com.em.mapper"/>
+    </bean>
+	<!-- 事务通知 -->
+	<tx:advice id="txAdvice" transaction-manager="txManager">
+		<tx:attributes>
+			<tx:method name="delete" propagation="REQUIRED"/>
+			<tx:method name="list" read-only="false"/>
+			<tx:method name="*" propagation="REQUIRED"/>
+		</tx:attributes>
+	</tx:advice>
+	<aop:config>
+		<aop:pointcut expression="execution(* cn.sxt.service.impl.*.*(..))" id="pointcut"/>
+		<aop:advisor advice-ref="txAdvice" pointcut-ref="pointcut"/>
+	</aop:config>
+    <context:component-scan base-package="com.em"/>
+</beans>
